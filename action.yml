@@ -35,8 +35,8 @@ inputs:
     description: "Override upload URL"
     default: "https://tryagentsignal.com/api/check/runs/"
   comment:
-    description: "Post/update a PR comment (true/false)"
-    default: "true"
+    description: "Sticky PR comment: auto (Pro key: comment on FAIL; free: job summary only; PASS only updates an existing comment), always, or never. Legacy true=auto, false=never. Needs permissions pull-requests: write"
+    default: "auto"
   github-token:
     default: ${{ github.token }}
   fail-on-fail:
@@ -95,7 +95,7 @@ runs:
         echo "::add-mask::$AGENTSIGNAL_API_KEY"
         python "$GITHUB_ACTION_PATH/scripts/upload.py" "$REPORT" "$RUNNER_TEMP/agentsignal-upload.json"
     - name: Comment on PR
-      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      if: inputs.comment != 'never' && inputs.comment != 'false' && github.event_name == 'pull_request'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
@@ -103,6 +103,9 @@ runs:
         REPORT: ${{ steps.check.outputs.report }}
         UPLOAD: ${{ steps.upload.outputs.upload }}
         AS_TARGET: ${{ inputs.target }}
+        AS_COMMENT: ${{ inputs.comment }}
+        AS_RESULT: ${{ steps.check.outputs.result }}
+        AS_PRO: ${{ inputs.api-key != '' && '1' || '' }}
       run: |
         md="$RUNNER_TEMP/agentsignal-comment.md"
         python "$GITHUB_ACTION_PATH/scripts/render_comment.py" "$REPORT" ${UPLOAD:+"$UPLOAD"} --target "$AS_TARGET" > "$md"

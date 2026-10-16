@@ -8,13 +8,30 @@ import json, sys
 
 MARKER = "<!-- agentsignal-check-action -->"
 SITE = "https://tryagentsignal.com"
-FIX = {  # same mapping as agentsignal_check.report.FIX
-    "baseline": f"{SITE}/templates/langgraph-idempotent-approval/",
-    "double_execution.kill_resume": f"{SITE}/templates/langgraph-idempotent-approval/",
-    "double_execution.kill_before_checkpoint": f"{SITE}/templates/langgraph-idempotent-approval/",
-    "approval.lost_on_restart": f"{SITE}/templates/langgraph-human-in-the-loop/",
-    "approval.replay": f"{SITE}/templates/langgraph-approval-ui/",
+T = f"{SITE}/templates"
+PRO = f"{SITE}/pro/"
+FIX79 = f"{SITE}/fix/"
+FIX_URLS = {  # same mapping as agentsignal_check.links.FIX_URLS (v0.3.2)
+    "langgraph": {
+        "baseline": f"{T}/langgraph-idempotent-approval/",
+        "double_execution.kill_resume": f"{T}/langgraph-idempotent-approval/",
+        "double_execution.kill_before_checkpoint": f"{T}/langgraph-idempotent-approval/",
+        "approval.lost_on_restart": f"{T}/langgraph-human-in-the-loop/",
+        "approval.replay": f"{T}/langgraph-approval-ui/",
+    },
+    "openai-agents": {
+        "baseline": f"{T}/openai-agents-idempotent-approval/",
+        "double_execution.kill_resume": f"{T}/openai-agents-idempotent-approval/",
+        "double_execution.kill_before_checkpoint": f"{T}/openai-agents-idempotent-approval/",
+        "approval.lost_on_restart": f"{T}/openai-agents-approval-resume/",
+        "approval.replay": f"{T}/openai-agents-idempotent-approval/",
+    },
 }
+FIX = FIX_URLS["langgraph"]
+
+
+def fix_url(detector, framework=None):
+    return FIX_URLS.get(framework, FIX).get(detector, f"{T}/")
 
 
 def _md(s):
@@ -45,13 +62,14 @@ def render(report, upload=None, target=None):
         out += ["", "| Failing detector | Detail | Fix |", "|---|---|---|"]
         for r in fails:
             d = r.get("detector", "")
-            url = links.get(d) or FIX.get(d) or f"{SITE}/fix/"
+            url = links.get(d) or r.get("fix_url") or fix_url(d, report.get("framework"))
             out.append(f"| `{_md(d)}` | {_md(r.get('detail', ''))} | [fix]({url}) |")
         if "" in links:
             out.append(f"\nMore fixes: {links['']}")
-        out.append(f"\nWant it fixed for you? [$79 Fix]({SITE}/fix/)")
+        out.append(f"\nWant it fixed for you? [$79 Fix]({FIX79}) · Re-tested daily against new framework releases: [Signal Pro]({PRO})")
     else:
         out.append("\nNo double execution or lost approvals detected.")
+        out.append(f"\n<sub>Release-break alerts and run history: [Signal Pro]({PRO})</sub>")
     if upload and upload.get("run_id"):
         out.append(f"\nUploaded run: `{_md(upload['run_id'])}`")
     env = report.get("env") or {}

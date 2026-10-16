@@ -35,13 +35,29 @@ OpenAI Agents SDK: set `framework: openai-agents`, `target: app.agent:build` (fa
 | `extras` | the framework | pip extras |
 | `api-key` | | Signal Pro key. Uploads the run to `api-url`; fix links then come from the server |
 | `api-url` | `https://tryagentsignal.com/api/check/runs/` | |
-| `comment` | `true` | create/update the PR comment |
+| `comment` | `auto` | `auto`, `always` or `never` (see below). Legacy `true` = `auto`, `false` = `never` |
 | `fail-on-fail` | `true` | fail the job if any detector fails |
 | `working-directory`, `python-version`, `github-token` | `.`, `3.12`, `github.token` | |
 
 Outputs: `result` (`pass`/`fail`), `report` (JSON path), `run-id`.
 
 The upload sends `{report, repo, commit_sha, framework, version}` with `repo`/`commit_sha` from `GITHUB_REPOSITORY`/`GITHUB_SHA`. Upload errors (400, 401, 403, 413, 429, network) become warnings and never fail the job. The PR comment is also written to the job summary.
+
+## PR comment
+
+On `pull_request` runs the action keeps **one** sticky comment, found by the hidden marker `<!-- agentsignal-check-action -->`.
+It lists the failing detectors with a per-framework fix link (server links when `api-key` is set), plus links to the
+[$79 Fix](https://tryagentsignal.com/fix/) and [Signal Pro](https://tryagentsignal.com/pro/). It is never deleted:
+a PASS after a FAIL edits it to passing.
+
+| `comment` | FAIL | PASS |
+|---|---|---|
+| `auto` (default) | with `api-key`: create or update. Without: job summary only (an existing comment is still updated) | update an existing comment; never create one |
+| `always` | create or update | create or update |
+| `never` | nothing | nothing |
+
+Permissions: the comment uses `github-token` (default `github.token`) and needs only `pull-requests: write`
+(plus `contents: read` for checkout). Without it, or on fork PRs with a read-only token, the comment step logs a warning and the job result is unchanged.
 
 ## Develop
 
