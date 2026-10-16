@@ -24,5 +24,20 @@ class T(unittest.TestCase):
     def test_pipes_escaped(self):
         md = render({"framework": "langgraph", "results": [{"detector": "baseline", "status": "FAIL", "detail": "a|b"}]})
         self.assertIn("a/b", md)
+    def test_badge_enabled_shows_markdown(self):
+        mdb = "[![Agent Signal](https://tryagentsignal.com/api/badge/o/r/)](https://tryagentsignal.com/)"
+        md = render(load("naive.json"), {"run_id": "r", "badge": {"enabled": True, "markdown": mdb, "enable_url": "https://tryagentsignal.com/pro/runs/#badge"}})
+        self.assertIn(mdb, md); self.assertNotIn("Show a live badge", md)
+    def test_badge_disabled_links_enable_url(self):
+        u = "https://tryagentsignal.com/pro/runs/#badge"
+        md = render(load("idem.json"), {"run_id": "r", "badge": {"enabled": False, "markdown": None, "enable_url": u}})
+        self.assertIn(f"[Show a live badge in your README]({u})", md); self.assertNotIn("/api/badge/", md)
+    def test_badge_null_or_no_upload_no_footer(self):
+        base = render(load("naive.json"), {"run_id": "r"})
+        for up in ({"run_id": "r", "badge": None}, {"run_id": "r"}):
+            md = render(load("naive.json"), up)
+            self.assertNotIn("Show a live badge", md); self.assertNotIn("/api/badge/", md); self.assertEqual(md, base)
+        md = render(load("naive.json"))
+        self.assertNotIn("Show a live badge", md); self.assertNotIn("/api/badge/", md)
 
 if __name__ == "__main__": unittest.main()

@@ -49,6 +49,24 @@ def server_links(upload):
     return out
 
 
+def badge_footer(upload):
+    """Footer from the upload response's additive badge{enabled,markdown,enable_url}.
+    No upload / no badge / malformed -> no footer."""
+    b = (upload or {}).get("badge") if isinstance(upload, dict) else None
+    if not isinstance(b, dict):
+        return None
+    if b.get("enabled") is True:
+        md = b.get("markdown")
+        if isinstance(md, str) and md.strip():
+            return " ".join(md.split())
+        return None
+    if b.get("enabled") is False:
+        url = b.get("enable_url")
+        if isinstance(url, str) and url.startswith("https://") and not any(c in url for c in " ()\n"):
+            return f"<sub>[Show a live badge in your README]({url})</sub>"
+    return None
+
+
 def render(report, upload=None, target=None):
     rs = report.get("results", [])
     fails = [r for r in rs if r.get("status") == "FAIL"]
@@ -76,6 +94,9 @@ def render(report, upload=None, target=None):
     pkgs = env.get("packages") if isinstance(env.get("packages"), dict) else {}
     if pkgs:
         out.append("\n<sub>" + ", ".join(f"{k} {v}" for k, v in pkgs.items()) + "</sub>")
+    foot = badge_footer(upload)
+    if foot:
+        out.append("\n" + foot)
     out.append(f"\n<sub>[agentsignal-check](https://github.com/MounirMeziani/agentsignal-check) · {SITE}</sub>")
     return "\n".join(out) + "\n"
 
