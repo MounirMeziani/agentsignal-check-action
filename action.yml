@@ -19,8 +19,8 @@ inputs:
     description: "JSON run context (openai-agents)"
     default: "{}"
   version:
-    description: "agentsignal-check to install: a git URL (git+https://...@ref), a bare git ref (e.g. v0.3.1, master), or a full pip spec starting with 'agentsignal-check'"
-    default: git+https://github.com/MounirMeziani/agentsignal-check@v0.3.1
+    description: "agentsignal-check to install: a git URL (git+https://...@ref), a bare git ref (e.g. v0.3.2, master), or a full pip spec starting with 'agentsignal-check'"
+    default: git+https://github.com/MounirMeziani/agentsignal-check@v0.3.2
   extras:
     description: "pip extras to install (default: the framework input)"
     default: ""

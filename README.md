@@ -31,7 +31,7 @@ OpenAI Agents SDK: set `framework: openai-agents`, `target: app.agent:build` (fa
 | `effect` | (required) | `module:function`, one per line |
 | `framework` | `langgraph` | or `openai-agents` |
 | `input` / `context` | `{}` | JSON first input (LangGraph) / run context (OpenAI Agents) |
-| `version` | `git+https://github.com/MounirMeziani/agentsignal-check@v0.3.1` | git URL, bare git ref (e.g. `master`), or a full pip spec starting with `agentsignal-check` |
+| `version` | `git+https://github.com/MounirMeziani/agentsignal-check@v0.3.2` | git URL, bare git ref (e.g. `master`), or a full pip spec starting with `agentsignal-check` |
 | `extras` | the framework | pip extras |
 | `api-key` | | Signal Pro key. Uploads the run to `api-url`; fix links then come from the server |
 | `api-url` | `https://tryagentsignal.com/api/check/runs/` | |
