@@ -1,0 +1,36 @@
+name: test
+on:
+  push: {branches: [main]}
+  pull_request:
+permissions: {contents: read, pull-requests: write}
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m unittest discover -s tests -v
+  naive-must-fail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: as
+        uses: ./
+        with:
+          target: fixtures.naive_graph:build
+          effect: fixtures.payments:charge
+          input: '{"amount": 5}'
+          fail-on-fail: "false"
+      - name: Expect fail
+        run: test "${{ steps.as.outputs.result }}" = fail
+  idem-must-pass:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: as
+        uses: ./
+        with:
+          target: fixtures.idem_graph:build
+          effect: fixtures.payments:charge
+          input: '{"amount": 5}'
+      - name: Expect pass
+        run: test "${{ steps.as.outputs.result }}" = pass

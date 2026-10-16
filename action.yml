@@ -1,0 +1,125 @@
+name: Agent Signal crash test
+description: Kill your agent mid-approval, restart it, and count how many times the tool ran. Comments FAILs and fix links on the PR.
+author: Mounir Meziani
+branding: {icon: shield, color: orange}
+inputs:
+  framework:
+    description: "langgraph or openai-agents"
+    default: langgraph
+  target:
+    description: "module:factory. LangGraph: factory(checkpointer) -> compiled graph. OpenAI Agents: factory() -> Agent"
+    required: true
+  effect:
+    description: "module:function side effect(s) to watch, one per line"
+    required: true
+  input:
+    description: "JSON input for the first invoke (langgraph)"
+    default: "{}"
+  context:
+    description: "JSON run context (openai-agents)"
+    default: "{}"
+  version:
+    description: "pip requirement suffix for agentsignal-check: a git ref (e.g. v0.3.0, master) or a full pip spec starting with 'agentsignal-check'"
+    default: master
+  extras:
+    description: "pip extras to install (default: the framework input)"
+    default: ""
+  python-version:
+    default: "3.12"
+  working-directory:
+    default: "."
+  api-key:
+    description: "Optional Signal Pro key (as_live_...). When set, the run is uploaded and fix links come from the server."
+    default: ""
+  api-url:
+    description: "Override upload URL"
+    default: "https://tryagentsignal.com/api/check/runs"
+  comment:
+    description: "Post/update a PR comment (true/false)"
+    default: "true"
+  github-token:
+    default: ${{ github.token }}
+  fail-on-fail:
+    description: "Fail the step when any detector FAILs"
+    default: "true"
+outputs:
+  result:
+    description: "pass or fail"
+    value: ${{ steps.check.outputs.result }}
+  report:
+    description: "Path to the JSON report"
+    value: ${{ steps.check.outputs.report }}
+  run-id:
+    description: "Uploaded run id (if api-key set)"
+    value: ${{ steps.upload.outputs.run_id }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with: {python-version: "${{ inputs.python-version }}"}
+    - name: Install agentsignal-check
+      shell: bash
+      env: {AS_VERSION: "${{ inputs.version }}", AS_EXTRAS: "${{ inputs.extras || inputs.framework }}"}
+      run: |
+        if [[ "$AS_VERSION" == agentsignal-check* ]]; then spec="$AS_VERSION"
+        else spec="agentsignal-check[${AS_EXTRAS}] @ git+https://github.com/MounirMeziani/agentsignal-check@${AS_VERSION}"; fi
+        python -m pip install -q "$spec"
+        agentsignal --version
+    - name: Run agentsignal check
+      id: check
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        AS_FRAMEWORK: ${{ inputs.framework }}
+        AS_TARGET: ${{ inputs.target }}
+        AS_EFFECT: ${{ inputs.effect }}
+        AS_INPUT: ${{ inputs.input }}
+        AS_CONTEXT: ${{ inputs.context }}
+      run: |
+        report="$RUNNER_TEMP/agentsignal-report.json"
+        args=(check --framework "$AS_FRAMEWORK" --json)
+        if [ "$AS_FRAMEWORK" = openai-agents ]; then args+=(--agent "$AS_TARGET" --context "$AS_CONTEXT")
+        else args+=(--graph "$AS_TARGET" --input "$AS_INPUT"); fi
+        while IFS= read -r e; do [ -n "$e" ] && args+=(--effect "$e"); done <<< "$AS_EFFECT"
+        set +e; PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}" agentsignal "${args[@]}" > "$report"; code=$?; set -e
+        if [ $code -gt 1 ]; then echo "::error::agentsignal check errored (exit $code)"; cat "$report"; exit $code; fi
+        echo "report=$report" >> "$GITHUB_OUTPUT"
+        echo "result=$([ $code -eq 1 ] && echo fail || echo pass)" >> "$GITHUB_OUTPUT"
+    - name: Upload run (Signal Pro)
+      id: upload
+      if: inputs.api-key != ''
+      shell: bash
+      env: {AGENTSIGNAL_API_KEY: "${{ inputs.api-key }}", AS_URL: "${{ inputs.api-url }}", REPORT: "${{ steps.check.outputs.report }}"}
+      run: |
+        echo "::add-mask::$AGENTSIGNAL_API_KEY"
+        out="$RUNNER_TEMP/agentsignal-upload.json"
+        status=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$AS_URL" \
+          -H "Authorization: Bearer $AGENTSIGNAL_API_KEY" -H 'Content-Type: application/json' \
+          --data-binary @"$REPORT") || status=000
+        case "$status" in
+          200|201) python -c "import json,sys;print('run_id='+str(json.load(open(sys.argv[1])).get('run_id','')))" "$out" >> "$GITHUB_OUTPUT"
+                   echo "upload=$out" >> "$GITHUB_OUTPUT" ;;
+          401) echo "::warning::Agent Signal upload failed: invalid or revoked API key (401)" ;;
+          413) echo "::warning::Agent Signal upload failed: report too large (413)" ;;
+          429) echo "::warning::Agent Signal upload failed: rate limit (429, 60/h per key)" ;;
+          000) echo "::warning::Agent Signal upload failed: network error" ;;
+          *)   echo "::warning::Agent Signal upload failed: HTTP $status" ;;
+        esac
+    - name: Comment on PR
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPORT: ${{ steps.check.outputs.report }}
+        UPLOAD: ${{ steps.upload.outputs.upload }}
+        AS_TARGET: ${{ inputs.target }}
+      run: |
+        md="$RUNNER_TEMP/agentsignal-comment.md"
+        python "$GITHUB_ACTION_PATH/scripts/render_comment.py" "$REPORT" ${UPLOAD:+"$UPLOAD"} --target "$AS_TARGET" > "$md"
+        cat "$md" >> "$GITHUB_STEP_SUMMARY"
+        cd "$GITHUB_ACTION_PATH/scripts" && python post_comment.py "$md"
+    - name: Result
+      if: inputs.fail-on-fail == 'true' && steps.check.outputs.result == 'fail'
+      shell: bash
+      run: echo "::error::Agent Signal crash test failed (see PR comment / job summary)"; exit 1

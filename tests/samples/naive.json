@@ -1,0 +1,43 @@
+{
+  "framework": "langgraph",
+  "results": [
+    {
+      "detector": "baseline",
+      "status": "FAIL",
+      "detail": "2 effect call(s) in a clean run; duplicates {'tests.fixtures.payments:charge(5,)[]': 2}"
+    },
+    {
+      "detector": "double_execution.kill_resume",
+      "status": "FAIL",
+      "detail": "crash after effect #2 -> re-executed {'tests.fixtures.payments:charge(5,)[]': 3}"
+    },
+    {
+      "detector": "double_execution.kill_before_checkpoint",
+      "status": "FAIL",
+      "detail": "crash before checkpoint #2 -> re-executed {'tests.fixtures.payments:charge(5,)[]': 3}; crash before checkpoint #3 -> re-executed {'tests.fixtures.payments:charge(5,)[]': 2}"
+    },
+    {
+      "detector": "approval.lost_on_restart",
+      "status": "PASS",
+      "detail": "pending interrupt visible from a fresh process"
+    },
+    {
+      "detector": "approval.replay",
+      "status": "FAIL",
+      "detail": "same approval delivered twice -> duplicates {'tests.fixtures.payments:charge(5,)[]': 3}"
+    }
+  ],
+  "env": {
+    "agentsignal_check": "0.2.1",
+    "python": "3.13.5",
+    "packages": {
+      "langgraph": "1.2.15",
+      "langgraph-checkpoint": "4.3.0",
+      "langgraph-checkpoint-sqlite": "3.1.2",
+      "langchain-core": "1.6.11",
+      "openai-agents": "0.24.0",
+      "openai": "3.31.0"
+    },
+    "run_at": "2026-10-16T09:23:45Z"
+  }
+}
