@@ -34,14 +34,14 @@ OpenAI Agents SDK: set `framework: openai-agents`, `target: app.agent:build` (fa
 | `version` | `master` | git ref of agentsignal-check, or a full pip spec starting with `agentsignal-check` |
 | `extras` | the framework | pip extras |
 | `api-key` | | Signal Pro key. Uploads the run to `api-url`; fix links then come from the server |
-| `api-url` | `https://tryagentsignal.com/api/check/runs` | |
+| `api-url` | `https://tryagentsignal.com/api/check/runs/` | |
 | `comment` | `true` | create/update the PR comment |
 | `fail-on-fail` | `true` | fail the job if any detector fails |
 | `working-directory`, `python-version`, `github-token` | `.`, `3.12`, `github.token` | |
 
 Outputs: `result` (`pass`/`fail`), `report` (JSON path), `run-id`.
 
-Upload errors (401, 413, 429, network) become warnings and never fail the job. The PR comment is also written to the job summary.
+The upload sends `{report, repo, commit_sha, framework, version}` with `repo`/`commit_sha` from `GITHUB_REPOSITORY`/`GITHUB_SHA`. Upload errors (400, 401, 403, 413, 429, network) become warnings and never fail the job. The PR comment is also written to the job summary.
 
 ## Develop
 

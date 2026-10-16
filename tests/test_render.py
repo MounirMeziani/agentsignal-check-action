@@ -18,7 +18,7 @@ class T(unittest.TestCase):
         md = render(load("idem.json"))
         self.assertIn("PASS", md); self.assertNotIn("Failing detector", md)
     def test_server_fix_links_and_run_id_win(self):
-        up = {"run_id": "run_x", "fix_links": [{"detector": "baseline", "url": "https://tryagentsignal.com/fix/abc"}]}
+        up = {"run_id": "run_x", "fix_links": [{"detector": "baseline", "status": "FAIL", "url": "https://tryagentsignal.com/fix/abc"}]}
         md = render(load("naive.json"), up)
         self.assertIn("https://tryagentsignal.com/fix/abc", md); self.assertIn("`run_x`", md)
     def test_pipes_escaped(self):

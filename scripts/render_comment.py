@@ -25,7 +25,7 @@ def server_links(upload):
     """fix_links from POST /api/check/runs: list of str or {detector, url}."""
     out = {}
     for l in (upload or {}).get("fix_links") or []:
-        if isinstance(l, dict) and l.get("url"):
+        if isinstance(l, dict) and l.get("url"):  # {detector, status, url}
             out.setdefault(l.get("detector", ""), l["url"])
         elif isinstance(l, str):
             out.setdefault("", l)
