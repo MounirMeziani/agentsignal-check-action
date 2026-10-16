@@ -48,6 +48,10 @@ def main(path):
     if m == "never":
         print("agentsignal-action: comment=never; skipping PR comment")
         return 0
+    event = os.environ.get("GITHUB_EVENT_NAME")
+    if event and event != "pull_request":
+        print(f"agentsignal-action: {event} run; skipping PR comment")
+        return 0
     token, repo, pr = os.environ.get("GITHUB_TOKEN"), os.environ.get("GITHUB_REPOSITORY"), os.environ.get("PR_NUMBER")
     if not (token and repo and pr):
         print("agentsignal-action: not a pull_request run or no token; skipping PR comment")

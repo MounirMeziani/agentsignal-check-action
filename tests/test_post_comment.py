@@ -31,12 +31,14 @@ class MockGitHub:
         self.s = HTTPServer(("127.0.0.1", 0), H)
         threading.Thread(target=self.s.serve_forever, daemon=True).start()
 
-    def run(self, sample, result, mode="auto", pro=True):
+    def run(self, sample, result, mode="auto", pro=True, event=None):
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
             f.write(render(json.load(open(os.path.join(HERE, "samples", sample)))))
         env = dict(os.environ, GITHUB_TOKEN="dummy", GITHUB_REPOSITORY="o/r", PR_NUMBER="7",
                    GITHUB_API_URL=f"http://127.0.0.1:{self.s.server_port}", AS_COMMENT=mode, AS_RESULT=result,
                    AS_PRO="1" if pro else "")
+        env.pop("GITHUB_EVENT_NAME", None)
+        if event: env["GITHUB_EVENT_NAME"] = event
         return subprocess.run([sys.executable, "post_comment.py", f.name], env=env, cwd=SCRIPTS,
                               check=True, capture_output=True, text=True).stdout
 
@@ -46,6 +48,19 @@ class MockGitHub:
 class T(unittest.TestCase):
     def setUp(self): self.gh = MockGitHub()
     def tearDown(self): self.gh.close()
+
+    def test_schedule_and_push_never_comment(self):
+        # even with a stray PR_NUMBER and an existing comment, non-PR events touch nothing
+        self.gh.store[5] = {"id": 5, "body": MARKER + " old"}
+        for ev in ("schedule", "push"):
+            for mode in ("auto", "always"):
+                out = self.gh.run("naive.json", "fail", mode=mode, event=ev)
+                self.assertIn(f"{ev} run; skipping PR comment", out)
+        self.assertEqual(self.gh.log, [])
+
+    def test_pull_request_event_still_comments(self):
+        self.gh.run("naive.json", "fail", event="pull_request")
+        self.assertIn("POST", self.gh.log)
 
     def test_fail_pro_creates(self):
         self.gh.run("naive.json", "fail")

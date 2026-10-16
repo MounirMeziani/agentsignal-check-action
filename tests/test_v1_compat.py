@@ -29,4 +29,8 @@ class T(unittest.TestCase):
         self.assertIn("sys.exit(0)", src)
         self.assertNotRegex(src, re.compile(r"sys\.exit\([1-9]"))
 
+    def test_comment_step_gated_to_pull_request(self):
+        step = block(self.new, "- name: Comment on PR", "- name: Result")
+        self.assertIn("github.event_name == 'pull_request'", step)
+
 if __name__ == "__main__": unittest.main()

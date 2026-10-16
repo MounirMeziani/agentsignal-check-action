@@ -6,7 +6,11 @@ with the failing detectors and a fix link for each.
 
 ```yaml
 name: crash-test
-on: pull_request
+on:
+  push: {branches: [main]}
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'   # weekly (Mon 06:00 UTC): keeps your result fresh against new framework releases
 permissions: {contents: read, pull-requests: write}
 jobs:
   agentsignal:
@@ -44,6 +48,9 @@ Outputs: `result` (`pass`/`fail`), `report` (JSON path), `run-id`.
 The upload sends `{report, repo, commit_sha, framework, version}` with `repo`/`commit_sha` from `GITHUB_REPOSITORY`/`GITHUB_SHA`. Upload errors (400, 401, 403, 413, 429, network) become warnings and never fail the job. The PR comment is also written to the job summary.
 
 ## PR comment
+
+Only `pull_request` runs touch the PR. `push` and `schedule` runs (for example the weekly cron above) never post or edit a comment;
+they still run the check, upload with `api-key`, and write the job summary.
 
 On `pull_request` runs the action keeps **one** sticky comment, found by the hidden marker `<!-- agentsignal-check-action -->`.
 It lists the failing detectors with a per-framework fix link (server links when `api-key` is set), plus links to the
