@@ -19,8 +19,8 @@ inputs:
     description: "JSON run context (openai-agents)"
     default: "{}"
   version:
-    description: "pip requirement suffix for agentsignal-check: a git ref (e.g. v0.3.0, master) or a full pip spec starting with 'agentsignal-check'"
-    default: master
+    description: "agentsignal-check to install: a git URL (git+https://...@ref), a bare git ref (e.g. v0.3.1, master), or a full pip spec starting with 'agentsignal-check'"
+    default: git+https://github.com/MounirMeziani/agentsignal-check@v0.3.1
   extras:
     description: "pip extras to install (default: the framework input)"
     default: ""
@@ -62,6 +62,7 @@ runs:
       env: {AS_VERSION: "${{ inputs.version }}", AS_EXTRAS: "${{ inputs.extras || inputs.framework }}"}
       run: |
         if [[ "$AS_VERSION" == agentsignal-check* ]]; then spec="$AS_VERSION"
+        elif [[ "$AS_VERSION" == git+* ]]; then spec="agentsignal-check[${AS_EXTRAS}] @ ${AS_VERSION}"
         else spec="agentsignal-check[${AS_EXTRAS}] @ git+https://github.com/MounirMeziani/agentsignal-check@${AS_VERSION}"; fi
         python -m pip install -q "$spec"
         agentsignal --version
