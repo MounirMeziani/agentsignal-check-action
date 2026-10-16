@@ -104,3 +104,28 @@ class Render(unittest.TestCase):
 
 
 if __name__ == "__main__": unittest.main()
+
+
+class Default(unittest.TestCase):
+    """No `comment` input set at all (v1 users): PASS with no earlier comment posts nothing, exit 0."""
+    def test_unset_mode_pass_no_comment(self):
+        gh = MockGitHub()
+        try:
+            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
+                f.write(render(json.load(open(os.path.join(HERE, "samples", "idem.json")))))
+            env = {k: v for k, v in os.environ.items() if k != "AS_COMMENT"}
+            env.update(GITHUB_TOKEN="dummy", GITHUB_REPOSITORY="o/r", PR_NUMBER="7", AS_RESULT="pass", AS_PRO="1",
+                       GITHUB_API_URL=f"http://127.0.0.1:{gh.s.server_port}")
+            p = subprocess.run([sys.executable, "post_comment.py", f.name], env=env, cwd=SCRIPTS, capture_output=True)
+            self.assertEqual(p.returncode, 0)
+            self.assertEqual(set(gh.log), {"GET"}); self.assertEqual(gh.store, {})
+        finally:
+            gh.close()
+
+    def test_api_error_exit_zero(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
+            f.write("x")
+        env = dict(os.environ, GITHUB_TOKEN="dummy", GITHUB_REPOSITORY="o/r", PR_NUMBER="7", AS_RESULT="fail", AS_PRO="1",
+                   GITHUB_API_URL="http://127.0.0.1:9")
+        p = subprocess.run([sys.executable, "post_comment.py", f.name], env=env, cwd=SCRIPTS, capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0); self.assertIn("::warning::", p.stdout)
