@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - run: python -m unittest discover -s tests -v
   naive-must-fail:
     runs-on: ubuntu-latest

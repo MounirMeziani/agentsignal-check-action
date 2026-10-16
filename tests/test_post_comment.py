@@ -31,7 +31,7 @@ class MockGitHub:
         self.s = HTTPServer(("127.0.0.1", 0), H)
         threading.Thread(target=self.s.serve_forever, daemon=True).start()
 
-    def run(self, sample, result, mode="auto", pro=True, event=None):
+    def run(self, sample, result, mode="auto", pro=True, event="pull_request"):
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
             f.write(render(json.load(open(os.path.join(HERE, "samples", sample)))))
         env = dict(os.environ, GITHUB_TOKEN="dummy", GITHUB_REPOSITORY="o/r", PR_NUMBER="7",
@@ -130,7 +130,7 @@ class Default(unittest.TestCase):
                 f.write(render(json.load(open(os.path.join(HERE, "samples", "idem.json")))))
             env = {k: v for k, v in os.environ.items() if k != "AS_COMMENT"}
             env.update(GITHUB_TOKEN="dummy", GITHUB_REPOSITORY="o/r", PR_NUMBER="7", AS_RESULT="pass", AS_PRO="1",
-                       GITHUB_API_URL=f"http://127.0.0.1:{gh.s.server_port}")
+                       GITHUB_API_URL=f"http://127.0.0.1:{gh.s.server_port}", GITHUB_EVENT_NAME="pull_request")
             p = subprocess.run([sys.executable, "post_comment.py", f.name], env=env, cwd=SCRIPTS, capture_output=True)
             self.assertEqual(p.returncode, 0)
             self.assertEqual(set(gh.log), {"GET"}); self.assertEqual(gh.store, {})
@@ -141,6 +141,6 @@ class Default(unittest.TestCase):
         with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
             f.write("x")
         env = dict(os.environ, GITHUB_TOKEN="dummy", GITHUB_REPOSITORY="o/r", PR_NUMBER="7", AS_RESULT="fail", AS_PRO="1",
-                   GITHUB_API_URL="http://127.0.0.1:9")
+                   GITHUB_API_URL="http://127.0.0.1:9", GITHUB_EVENT_NAME="pull_request")
         p = subprocess.run([sys.executable, "post_comment.py", f.name], env=env, cwd=SCRIPTS, capture_output=True, text=True)
         self.assertEqual(p.returncode, 0); self.assertIn("::warning::", p.stdout)
