@@ -84,7 +84,7 @@ def render(report, upload=None, target=None):
             out.append(f"| `{_md(d)}` | {_md(r.get('detail', ''))} | [fix]({url}) |")
         if "" in links:
             out.append(f"\nMore fixes: {links['']}")
-        out.append(f"\nWant it fixed for you? [$79 Fix]({FIX79}) · Re-tested daily against new framework releases: [Signal Pro]({PRO})")
+        out.append(f"\nWant it fixed for you? [$79 Fix]({FIX79}) · Release-break alerts and run history: [Signal Pro]({PRO})")
     else:
         out.append("\nNo double execution or lost approvals detected.")
         out.append(f"\n<sub>Release-break alerts and run history: [Signal Pro]({PRO})</sub>")
