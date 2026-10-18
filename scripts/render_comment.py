@@ -11,27 +11,42 @@ SITE = "https://tryagentsignal.com"
 T = f"{SITE}/templates"
 PRO = f"{SITE}/pro/"
 FIX79 = f"{SITE}/fix/"
-FIX_URLS = {  # same mapping as agentsignal_check.links.FIX_URLS (v0.3.2)
+G = f"{SITE}/guides"
+# Every FAIL links to a FREE page (never a Pro template). The double-execution fixes point at the
+# free guides that show the bug and the idempotency-key fix in full.
+FIX_URLS = {
     "langgraph": {
-        "baseline": f"{T}/langgraph-idempotent-approval/",
-        "double_execution.kill_resume": f"{T}/langgraph-idempotent-approval/",
-        "double_execution.kill_before_checkpoint": f"{T}/langgraph-idempotent-approval/",
+        "baseline": f"{G}/langgraph-interrupt-resume-twice/",
+        "double_execution.kill_resume": f"{G}/langgraph-interrupt-resume-twice/",
+        "double_execution.kill_before_checkpoint": f"{G}/langgraph-interrupt-resume-twice/",
         "approval.lost_on_restart": f"{T}/langgraph-human-in-the-loop/",
         "approval.replay": f"{T}/langgraph-approval-ui/",
     },
     "openai-agents": {
-        "baseline": f"{T}/openai-agents-idempotent-approval/",
-        "double_execution.kill_resume": f"{T}/openai-agents-idempotent-approval/",
-        "double_execution.kill_before_checkpoint": f"{T}/openai-agents-idempotent-approval/",
+        "baseline": f"{G}/duplicate-tool-calls-after-resume/",
+        "double_execution.kill_resume": f"{G}/duplicate-tool-calls-after-resume/",
+        "double_execution.kill_before_checkpoint": f"{G}/duplicate-tool-calls-after-resume/",
         "approval.lost_on_restart": f"{T}/openai-agents-approval-resume/",
-        "approval.replay": f"{T}/openai-agents-idempotent-approval/",
+        "approval.replay": f"{G}/duplicate-tool-calls-after-resume/",
     },
 }
+# Pro-only template pages. A fix URL from the CLI report (v0.3.2) or the server that points at one
+# of these is replaced with the free page for that detector.
+PRO_PATHS = ("/templates/langgraph-idempotent-approval/", "/templates/openai-agents-idempotent-approval/")
 FIX = FIX_URLS["langgraph"]
 
 
 def fix_url(detector, framework=None):
     return FIX_URLS.get(framework, FIX).get(detector, f"{T}/")
+
+
+def is_pro(url):
+    return isinstance(url, str) and any(p in url for p in PRO_PATHS)
+
+
+def free_url(url, detector, framework=None):
+    """url if it is set and not a Pro page, else the free page for this detector."""
+    return url if url and not is_pro(url) else fix_url(detector, framework)
 
 
 def _md(s):
@@ -80,14 +95,14 @@ def render(report, upload=None, target=None):
         out += ["", "| Failing detector | Detail | Fix |", "|---|---|---|"]
         for r in fails:
             d = r.get("detector", "")
-            url = links.get(d) or r.get("fix_url") or fix_url(d, report.get("framework"))
+            url = free_url(links.get(d) or r.get("fix_url"), d, report.get("framework"))
             out.append(f"| `{_md(d)}` | {_md(r.get('detail', ''))} | [fix]({url}) |")
-        if "" in links:
+        if "" in links and not is_pro(links[""]):
             out.append(f"\nMore fixes: {links['']}")
-        out.append(f"\nWant it fixed for you? [$79 Fix]({FIX79}) · Release-break alerts and run history: [Signal Pro]({PRO})")
+        out.append(f"\nWant it fixed for you? [$79 Fix]({FIX79}) · Run history: [Signal Pro]({PRO})")
     else:
         out.append("\nNo double execution or lost approvals detected.")
-        out.append(f"\n<sub>Release-break alerts and run history: [Signal Pro]({PRO})</sub>")
+        out.append(f"\n<sub>Run history: [Signal Pro]({PRO})</sub>")
     if upload and upload.get("run_id"):
         out.append(f"\nUploaded run: `{_md(upload['run_id'])}`")
     env = report.get("env") or {}

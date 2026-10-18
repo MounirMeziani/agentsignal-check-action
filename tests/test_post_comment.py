@@ -112,6 +112,28 @@ class Render(unittest.TestCase):
         rep = {"framework": "openai-agents", "results": [{"detector": "approval.lost_on_restart", "status": "FAIL", "detail": "x"}]}
         self.assertIn("/templates/openai-agents-approval-resume/", render(rep))
 
+    def test_fail_links_never_pro(self):
+        import render_comment as rc
+        from contract import fix_links
+        pro = ("/templates/langgraph-idempotent-approval/", "/templates/openai-agents-idempotent-approval/")
+        dets = list(rc.FIX_URLS["langgraph"])
+        for fw in ("langgraph", "openai-agents"):
+            for d in dets:
+                self.assertFalse(any(p in rc.fix_url(d, fw) for p in pro), (fw, d))
+                rep = {"framework": fw, "results": [{"detector": d, "status": "FAIL", "detail": "x",
+                       "fix_url": "https://tryagentsignal.com" + pro[0]}]}
+                # CLI v0.3.2 report fix_url and the server's fix_links both point at Pro pages today
+                srv = {"run_id": "r", "fix_links": fix_links(rep) + ["https://tryagentsignal.com" + pro[1]]}
+                for up in (None, srv):
+                    md = render(rep, up)
+                    self.assertNotIn("idempotent-approval", md, (fw, d, up))
+                    if up is None:
+                        self.assertIn(f"[fix]({rc.fix_url(d, fw)})", md)
+
+    def test_oai_double_execution_free_guide(self):
+        rep = {"framework": "openai-agents", "results": [{"detector": "approval.replay", "status": "FAIL", "detail": "x"}]}
+        self.assertIn("[fix](https://tryagentsignal.com/guides/duplicate-tool-calls-after-resume/)", render(rep))
+
     def test_server_links_win(self):
         rep = json.load(open(os.path.join(HERE, "samples", "naive.json")))
         b = render(rep, {"run_id": "r1", "fix_links": [{"detector": "baseline", "url": "https://tryagentsignal.com/x/"}]})

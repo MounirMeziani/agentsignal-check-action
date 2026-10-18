@@ -53,7 +53,8 @@ Only `pull_request` runs touch the PR. `push` and `schedule` runs (for example t
 they still run the check, upload with `api-key`, and write the job summary.
 
 On `pull_request` runs the action keeps **one** sticky comment, found by the hidden marker `<!-- agentsignal-check-action -->`.
-It lists the failing detectors with a per-framework fix link (server links when `api-key` is set), plus links to the
+It lists the failing detectors with a per-framework fix link to a free page (server links when `api-key` is set; a link to a
+Pro-only template is always replaced with the free page), plus links to the
 [$79 Fix](https://tryagentsignal.com/fix/) and [Signal Pro](https://tryagentsignal.com/pro/). It is never deleted:
 a PASS after a FAIL edits it to passing.
 

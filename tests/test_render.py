@@ -12,13 +12,15 @@ class T(unittest.TestCase):
         self.assertTrue(fails)
         self.assertTrue(md.startswith(MARKER)); self.assertIn("FAIL", md.splitlines()[1])
         for d in fails: self.assertIn(f"`{d}`", md)
-        self.assertIn("/templates/langgraph-idempotent-approval/", md)
+        self.assertIn("/guides/langgraph-interrupt-resume-twice/", md)
+        self.assertNotIn("idempotent-approval", md)
         self.assertIn("langgraph 1.2.15", md)
     def test_no_retest_frequency_claim(self):
         for n in ("naive.json", "idem.json"):
             md = render(load(n))
             self.assertNotIn("re-tested", md.lower()); self.assertNotIn("daily", md.lower())
-        self.assertIn("Release-break alerts and run history: [Signal Pro]", render(load("naive.json")))
+        self.assertIn("Run history: [Signal Pro]", render(load("naive.json")))
+        self.assertNotIn("release-break", render(load("naive.json")).lower())
     def test_idem_pass_no_table(self):
         md = render(load("idem.json"))
         self.assertIn("PASS", md); self.assertNotIn("Failing detector", md)
