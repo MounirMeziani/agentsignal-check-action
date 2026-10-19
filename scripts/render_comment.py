@@ -112,7 +112,7 @@ def render(report, upload=None, target=None):
     foot = badge_footer(upload)
     if foot:
         out.append("\n" + foot)
-    out.append(f"\n<sub>[agentsignal-check](https://github.com/MounirMeziani/agentsignal-check) · {SITE}</sub>")
+    out.append(f"\n<sub>[agentsignal-check](https://github.com/agentsignal/agentsignal-check) · {SITE}</sub>")
     return "\n".join(out) + "\n"
 
 
